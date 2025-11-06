@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydroponics Dashboard</title>
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom styles for sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0; /* bg-gray-200 */
+            border-radius: 9999px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #3b82f6; /* bg-blue-500 */
+            border-radius: 9999px;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: #3b82f6; /* bg-blue-500 */
+            border-radius: 9999px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-900 bg-gradient-to-br from-green-50 to-blue-50" style="font-family: 'Inter', sans-serif;">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-5xl font-bold text-green-700 mb-2">🌱 Pi Gardener</h1>
+            <p class="text-lg text-gray-600">Real-time sensor data and system controls</p>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Column 1: Live Status -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold mb-4 text-green-700">🌡️ Live Status</h2>
+                    <div class="space-y-4">
+                        <!-- Temperature -->
+                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <span class="text-lg text-gray-600">Temperature</span>
+                            <span id="temp-reading" class="text-3xl font-bold text-blue-600">--.- °C</span>
+                        </div>
+                        <!-- Humidity -->
+                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <span class="text-lg text-gray-600">Humidity</span>
+                            <span id="humid-reading" class="text-3xl font-bold text-green-600">--.- %</span>
+                        </div>
+                        <!-- Water Levels -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <span class="text-lg text-gray-600">Floater 1</span>
+                                <span id="floater1-reading" class="text-xl font-bold px-3 py-1 rounded-full bg-gray-200 text-gray-700">--</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <span class="text-lg text-gray-600">Floater 2</span>
+                                <span id="floater2-reading" class="text-xl font-bold px-3 py-1 rounded-full bg-gray-200 text-gray-700">--</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <span class="text-lg text-gray-600">Floater 3</span>
+                                <span id="floater3-reading" class="text-xl font-bold px-3 py-1 rounded-full bg-gray-200 text-gray-700">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold mb-4 text-green-700">📊 Sensor History</h2>
+                    <p class="text-sm text-gray-500 mb-4">Last 20 readings (updates every 1 min).</p>
+                    <div class="h-64">
+                        <canvas id="sensorChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2 & 3: Controls -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h2 class="text-2xl font-semibold mb-6 text-green-700">⚙️ System Controls</h2>
+                    <div class="space-y-8">
+                        <!-- Lights Control -->
+                        <div id="lights-control">
+                            <h3 class="text-xl font-semibold mb-3 text-yellow-600">💡 Grow Lights</h3>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label for="lightsOnTime" class="block text-sm font-medium text-gray-700">Turn ON Time</label>
+                                    <input type="time" id="lightsOnTime" class="setting-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label for="lightsOffTime" class="block text-sm font-medium text-gray-700">Turn OFF Time</label>
+                                    <input type="time" id="lightsOffTime" class="setting-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="grid grid-cols-6 gap-2 text-sm font-medium text-gray-700">
+                                    <span>Light 1</span><span>Light 2</span><span>Light 3</span><span>Light 4</span><span>Light 5</span><span>Light 6</span>
+                                </div>
+                                <div class="grid grid-cols-6 gap-2">
+                                    <select id="lightsMode1" class="setting-input control-btn lights-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="schedule">Schedule</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="lightsMode2" class="setting-input control-btn lights-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="schedule">Schedule</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="lightsMode3" class="setting-input control-btn lights-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="schedule">Schedule</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="lightsMode4" class="setting-input control-btn lights-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="schedule">Schedule</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="lightsMode5" class="setting-input control-btn lights-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="schedule">Schedule</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="lightsMode6" class="setting-input control-btn lights-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="schedule">Schedule</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Water System -->
+                        <div id="water-control">
+                             <h3 class="text-xl font-semibold mb-3 text-blue-600">💧 Water System</h3>
+                             <div class="mb-3">
+                                 <span class="text-sm font-medium text-gray-700">Status: </span>
+                                 <span id="water-status" class="text-sm font-bold text-green-600">OK</span>
+                             </div>
+                             <div class="mb-4">
+                                 <label for="maxFillTime" class="block text-sm font-medium text-gray-700">Max Fill Time (minutes)</label>
+                                 <input type="range" id="maxFillTime" class="setting-input mt-2" min="5" max="30" step="1">
+                                 <span id="maxFillTime-label" class="text-sm text-gray-500"></span>
+                             </div>
+                             <div class="flex items-center space-x-4">
+                                 <button data-mode="auto" class="control-btn water-mode-btn px-4 py-2 rounded-md font-medium">Auto (Fill when low)</button>
+                                 <button data-mode="fill" class="control-btn water-mode-btn px-4 py-2 rounded-md font-medium bg-blue-500 text-white">Manual Fill Now</button>
+                                 <button data-mode="off" class="control-btn water-mode-btn px-4 py-2 rounded-md font-medium">Force OFF</button>
+                             </div>
+                         </div>
+                        <!-- Hydroponic Pumps -->
+                        <div id="pump-control">
+                            <h3 class="text-xl font-semibold mb-3 text-purple-600">🚰 Hydroponic Pumps</h3>
+                            <div class="grid grid-cols-2 gap-6 mb-4">
+                                <div>
+                                    <label for="pumpOnDuration" class="block text-sm font-medium text-gray-700">ON Duration (seconds)</label>
+                                    <input type="range" id="pumpOnDuration" class="setting-input mt-2" min="60" max="3600" step="60">
+                                    <span id="pumpOnDuration-label" class="text-sm text-gray-500"></span>
+                                </div>
+                                <div>
+                                    <label for="pumpOffDuration" class="block text-sm font-medium text-gray-700">OFF Duration (seconds)</label>
+                                    <input type="range" id="pumpOffDuration" class="setting-input mt-2" min="60" max="7200" step="60">
+                                    <span id="pumpOffDuration-label" class="text-sm text-gray-500"></span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="grid grid-cols-5 gap-2 text-sm font-medium text-gray-700">
+                                    <span>Pump 1</span><span>Pump 2</span><span>Pump 3</span><span>Pump 4</span><span>Pump 5</span>
+                                </div>
+                                <div class="grid grid-cols-5 gap-2">
+                                    <select id="pumpMode1" class="setting-input control-btn pump-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="pumpMode2" class="setting-input control-btn pump-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="pumpMode3" class="setting-input control-btn pump-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="pumpMode4" class="setting-input control-btn pump-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="pumpMode5" class="setting-input control-btn pump-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Exhaust Fans -->
+                        <div id="fan-control">
+                            <h3 class="text-xl font-semibold mb-3 text-red-600">🌬️ Exhaust Fans</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-4">
+                                <div>
+                                    <label for="exhaustFanTempHigh" class="block text-sm font-medium text-gray-700">Temp High (°C)</label>
+                                    <input type="range" id="exhaustFanTempHigh" class="setting-input mt-2" min="15" max="40" step="0.5">
+                                    <span id="exhaustFanTempHigh-label" class="text-sm text-gray-500"></span>
+                                </div>
+                                <div>
+                                    <label for="exhaustFanTempLow" class="block text-sm font-medium text-gray-700">Temp Low (°C)</label>
+                                    <input type="range" id="exhaustFanTempLow" class="setting-input mt-2" min="10" max="35" step="0.5">
+                                    <span id="exhaustFanTempLow-label" class="text-sm text-gray-500"></span>
+                                </div>
+                                <div>
+                                    <label for="exhaustFanHumidHigh" class="block text-sm font-medium text-gray-700">Humid High (%)</label>
+                                    <input type="range" id="exhaustFanHumidHigh" class="setting-input mt-2" min="30" max="90" step="1">
+                                    <span id="exhaustFanHumidHigh-label" class="text-sm text-gray-500"></span>
+                                </div>
+                                <div>
+                                    <label for="exhaustFanHumidLow" class="block text-sm font-medium text-gray-700">Humid Low (%)</label>
+                                    <input type="range" id="exhaustFanHumidLow" class="setting-input mt-2" min="20" max="80" step="1">
+                                    <span id="exhaustFanHumidLow-label" class="text-sm text-gray-500"></span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="grid grid-cols-2 gap-2 text-sm font-medium text-gray-700">
+                                    <span>Exhaust Fan 1</span><span>Exhaust Fan 2</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select id="exhaustFanMode1" class="setting-input control-btn exhaust-fan-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="auto">Auto</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="exhaustFanMode2" class="setting-input control-btn exhaust-fan-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="auto">Auto</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Circulation Fans -->
+                        <div id="air-fan-control">
+                            <h3 class="text-xl font-semibold mb-3 text-cyan-600">💨 Circulation Fans</h3>
+                            <div class="grid grid-cols-2 gap-6 mb-4">
+                                <div>
+                                    <label for="circulationFanOnDuration" class="block text-sm font-medium text-gray-700">ON Duration (seconds)</label>
+                                    <input type="range" id="circulationFanOnDuration" class="setting-input mt-2" min="600" max="7200" step="300">
+                                    <span id="circulationFanOnDuration-label" class="text-sm text-gray-500"></span>
+                                </div>
+                                <div>
+                                    <label for="circulationFanOffDuration" class="block text-sm font-medium text-gray-700">OFF Duration (seconds)</label>
+                                    <input type="range" id="circulationFanOffDuration" class="setting-input mt-2" min="600" max="7200" step="300">
+                                    <span id="circulationFanOffDuration-label" class="text-sm text-gray-500"></span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="grid grid-cols-2 gap-2 text-sm font-medium text-gray-700">
+                                    <span>Circulation Fan 1</span><span>Circulation Fan 2</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <select id="circulationFanMode1" class="setting-input control-btn circulation-fan-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                    <select id="circulationFanMode2" class="setting-input control-btn circulation-fan-mode-btn block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="cycle">Cycle</option><option value="on">ON</option><option value="off">OFF</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- No Firebase! ---
+        // All data is fetched from the local Flask server.
+        // API_BASE_URL is '' because the HTML is served from the same origin.
+        const API_BASE_URL = ''; 
+
+        // --- Chart.js Setup ---
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        const sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: '#3b82f6', // bg-blue-500
+                        tension: 0.1,
+                        yAxisID: 'yTemp'
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: '#10b981', // bg-green-500
+                        tension: 0.1,
+                        yAxisID: 'yHumid'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { ticks: { display: false } },
+                    yTemp: { type: 'linear', display: true, position: 'left', title: { display: true, text: '°C' } },
+                    yHumid: { type: 'linear', display: true, position: 'right', title: { display: true, text: '%' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        // --- Helper Functions ---
+        function updateSliderLabel(sliderId, unit = '') {
+            const slider = document.getElementById(sliderId);
+            const label = document.getElementById(`${sliderId}-label`);
+            if (slider && label) {
+                let value = slider.value;
+                if (unit === 'min') {
+                    value = (value / 60).toFixed(1);
+                    label.textContent = `${value} min`;
+                } else if (sliderId.includes('circulationFan') && sliderId.includes('Duration')) {
+                    value = (value / 60).toFixed(1);
+                    label.textContent = `${value} min`;
+                } else {
+                    label.textContent = `${value} ${unit}`;
+                }
+            }
+        }
+        
+        function updateButtonStyles(groupSelector, activeMode) {
+            document.querySelectorAll(groupSelector).forEach(btn => {
+                if (btn.dataset.mode === activeMode) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('bg-gray-200', 'text-gray-700');
+                } else {
+                    btn.classList.add('bg-gray-200', 'text-gray-700');
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                }
+            });
+        }
+
+        // --- Data Fetching Functions ---
+
+        async function loadLatestSensors() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/latest_sensors`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                const tempEl = document.getElementById('temp-reading');
+                const humidEl = document.getElementById('humid-reading');
+                const floater1El = document.getElementById('floater1-reading');
+                const floater2El = document.getElementById('floater2-reading');
+                const floater3El = document.getElementById('floater3-reading');
+                const waterStatusEl = document.getElementById('water-status');
+
+                if (data.temperature != null) {
+                    tempEl.textContent = `${data.temperature.toFixed(1)} °C`;
+                }
+                if (data.humidity != null) {
+                    humidEl.textContent = `${data.humidity.toFixed(1)} %`;
+                }
+
+                // Display individual floaters
+                [floater1El, floater2El, floater3El].forEach((el, i) => {
+                    const floaterKey = `floater${i+1}`;
+                    if (data[floaterKey] === 1) {
+                        el.textContent = "OK";
+                        el.className = "text-xl font-bold px-3 py-1 rounded-full bg-green-100 text-green-700";
+                    } else {
+                        el.textContent = "LOW";
+                        el.className = "text-xl font-bold px-3 py-1 rounded-full bg-red-100 text-red-700 animate-pulse";
+                    }
+                });
+
+                // Display water system status
+                if (data.water_error) {
+                    if (data.water_error === "overflow") {
+                        waterStatusEl.textContent = "OVERFLOW!";
+                        waterStatusEl.className = "text-sm font-bold text-red-600 animate-pulse";
+                    } else if (data.water_error === "reservoir_empty") {
+                        waterStatusEl.textContent = "RESERVOIR EMPTY";
+                        waterStatusEl.className = "text-sm font-bold text-red-600";
+                    } else if (data.water_error === "timeout") {
+                        waterStatusEl.textContent = "FILL TIMEOUT";
+                        waterStatusEl.className = "text-sm font-bold text-orange-600";
+                    }
+                } else {
+                    waterStatusEl.textContent = "OK";
+                    waterStatusEl.className = "text-sm font-bold text-green-600";
+                }
+            } catch (error) {
+                console.error("Error loading latest sensors:", error);
+            }
+        }
+
+        async function loadSensorHistory() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/sensor_history`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const historyData = await response.json(); // This is already sorted desc by server
+
+                const labels = [];
+                const tempData = [];
+                const humidData = [];
+                
+                // Data is [newest...oldest], so reverse it for the chart
+                historyData.reverse().forEach(reading => {
+                    if (reading.timestamp && reading.temperature != null && reading.humidity != null) {
+                        labels.push(new Date(reading.timestamp).toLocaleTimeString());
+                        tempData.push(reading.temperature.toFixed(1));
+                        humidData.push(reading.humidity.toFixed(1));
+                    }
+                });
+
+                sensorChart.data.labels = labels;
+                sensorChart.data.datasets[0].data = tempData;
+                sensorChart.data.datasets[1].data = humidData;
+                sensorChart.update();
+            } catch (error) {
+                console.error("Error loading sensor history:", error);
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/settings`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const settings = await response.json();
+
+                // Set all slider and input values
+                document.getElementById('lightsOnTime').value = settings.lightsOnTime || '06:00';
+                document.getElementById('lightsOffTime').value = settings.lightsOffTime || '22:00';
+
+                document.getElementById('pumpOnDuration').value = settings.pumpOnDuration || 900;
+                document.getElementById('pumpOffDuration').value = settings.pumpOffDuration || 2700;
+
+                document.getElementById('exhaustFanTempHigh').value = settings.exhaustFanTempHigh || 27;
+                document.getElementById('exhaustFanTempLow').value = settings.exhaustFanTempLow || 23;
+                document.getElementById('exhaustFanHumidHigh').value = settings.exhaustFanHumidHigh || 65;
+                document.getElementById('exhaustFanHumidLow').value = settings.exhaustFanHumidLow || 55;
+
+                document.getElementById('circulationFanOnDuration').value = settings.circulationFanOnDuration || 1800;
+                document.getElementById('circulationFanOffDuration').value = settings.circulationFanOffDuration || 1800;
+
+                document.getElementById('maxFillTime').value = Math.round((settings.maxFillTime || 600) / 60);  // Convert to minutes
+
+                // Individual modes
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById(`lightsMode${i}`).value = settings[`lightsMode${i}`] || 'schedule';
+                }
+                for (let i = 1; i <= 5; i++) {
+                    document.getElementById(`pumpMode${i}`).value = settings[`pumpMode${i}`] || 'cycle';
+                }
+                for (let i = 1; i <= 2; i++) {
+                    document.getElementById(`exhaustFanMode${i}`).value = settings[`exhaustFanMode${i}`] || 'auto';
+                    document.getElementById(`circulationFanMode${i}`).value = settings[`circulationFanMode${i}`] || 'cycle';
+                }
+
+                // Update labels
+                updateSliderLabel('pumpOnDuration', 'sec');
+                updateSliderLabel('pumpOffDuration', 'sec');
+                updateSliderLabel('exhaustFanTempHigh', '°C');
+                updateSliderLabel('exhaustFanTempLow', '°C');
+                updateSliderLabel('exhaustFanHumidHigh', '%');
+                updateSliderLabel('exhaustFanHumidLow', '%');
+                updateSliderLabel('circulationFanOnDuration');
+                updateSliderLabel('circulationFanOffDuration');
+                updateSliderLabel('maxFillTime', 'min');
+
+                // Set active buttons (for water only, since others are selects)
+                updateButtonStyles('.water-mode-btn', settings.waterSystemMode || 'auto');
+
+            } catch (error) {
+                console.error("Error loading settings:", error);
+            }
+        }
+
+        async function saveSetting(key, value) {
+            console.log(`Saving: { ${key}: ${value} }`);
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ [key]: value }) // Send as { "key": "value" }
+                });
+                if (!response.ok) throw new Error('Network response was not ok');
+                const result = await response.json();
+                if (!result.success) throw new Error('Server reported error');
+            } catch (error) {
+                console.error(`Error saving ${key}:`, error);
+            }
+        }
+
+        // --- Main App Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load all data on page load
+            loadSettings();
+            loadLatestSensors();
+            loadSensorHistory();
+
+            // Poll for live data every 5 seconds
+            setInterval(loadLatestSensors, 5000);
+            // Refresh chart every 1 minute
+            setInterval(loadSensorHistory, 60000);
+
+            // --- 4. Add Event Listeners to ALL Controls ---
+            document.querySelectorAll('.setting-input').forEach(input => {
+                if (input.type === 'range') {
+                    input.addEventListener('input', (e) => {
+                        const unitMap = {
+                            'pumpOnDuration': 'sec', 'pumpOffDuration': 'sec',
+                            'envFanTempHigh': '°C', 'envFanTempLow': '°C',
+                            'envFanHumidHigh': '%', 'envFanHumidLow': '%',
+                            'airFanOnDuration': 'sec', 'airFanOffDuration': 'sec'
+                        };
+                        updateSliderLabel(e.target.id, unitMap[e.target.id] || '');
+                    });
+                }
+                
+                input.addEventListener('change', (e) => {
+                    let value = e.target.type === 'range' ? parseFloat(e.target.value) : e.target.value;
+                    if (e.target.id === 'maxFillTime') {
+                        value *= 60;  // Convert minutes to seconds
+                    }
+                    saveSetting(e.target.id, value);
+                });
+            });
+
+            // Listen to button clicks (only water has buttons now)
+            document.getElementById('water-control').addEventListener('click', e => {
+                if (e.target.matches('.water-mode-btn')) {
+                    const mode = e.target.dataset.mode;
+                    saveSetting('waterSystemMode', mode);
+                    updateButtonStyles('.water-mode-btn', mode);
+
+                    if (mode === 'fill') {
+                        setTimeout(() => {
+                            // The server will reset this, but we'll force a refresh
+                            // of the settings UI to show the change back to "auto"
+                            loadSettings();
+                        }, 1000);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
